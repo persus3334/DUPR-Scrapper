@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
 
-st.title("🎾 DUPR Performance Dashboard")
-st.markdown("Enter a DUPR ID below to generate rating history graphs.")
+st.title("DUPR Dashboard")
+st.markdown("Enter a DUPR ID below to generate rating history graphs and top teammates.")
 
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
@@ -117,7 +117,7 @@ def get_detailed_match_history(numeric_id, token):
     
     # We'll pull the last 100 matches to keep it fast
     payload = {
-        "limit": 100,
+        "limit": 10000,
         "offset": 0,
         "playerId": int(numeric_id),
         "filter": {"matchType": "DOUBLES"} 
@@ -202,8 +202,7 @@ if submit_button:
 
             # 2. MATCH HISTORY / INSIGHTS SECTION
             st.divider()
-            st.header("🤝 Partner & ⚔️ Opponent Insights")
-            st.caption("Based on the last 100 Doubles matches")
+            st.header("Partner Insights")
             
             with st.spinner("Analyzing match history..."):
                 p_stats, o_stats = get_detailed_match_history(numeric_id, token)
