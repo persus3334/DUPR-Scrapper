@@ -115,8 +115,9 @@ def get_detailed_match_history(numeric_id, token):
     url = "https://api.dupr.gg/match/v1.0/player/history"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
+    # Using the exact payload structure from your F12
     payload = {
-        "limit": 100,
+        "limit": 10000,
         "offset": 0,
         "playerId": int(numeric_id),
         "filter": {"matchType": "DOUBLES"} 
@@ -128,7 +129,8 @@ def get_detailed_match_history(numeric_id, token):
             return {}, {}
         
         data = response.json()
-        matches = data.get("result", {}).get("hits", []) # Your F12 shows 'hits', not 'matches'
+        # FIX: Your F12 showed 'hits' inside 'result'
+        matches = data.get("result", {}).get("hits", [])
         
         partner_stats = {}
         opponent_stats = {}
@@ -140,21 +142,20 @@ def get_detailed_match_history(numeric_id, token):
             user_won = False
             user_team_idx = -1
             
-            # 1. Identify which team the user is on
+            # Find which team you were on
             for i, team in enumerate(teams):
-                p1 = team.get("player1", {})
-                p2 = team.get("player2", {})
+                p1_id = team.get("player1", {}).get("id")
+                p2_id = team.get("player2", {}).get("id")
                 
-                # Check if the numeric ID matches either player on this team
-                if p1.get("id") == int(numeric_id) or p2.get("id") == int(numeric_id):
+                if p1_id == int(numeric_id) or p2_id == int(numeric_id):
                     user_team_idx = i
                     if team.get("winner") is True:
                         user_won = True
                     break
             
-            if user_team_idx == -1: continue # User not found in this match
+            if user_team_idx == -1: continue 
 
-            # 2. Extract Partner (The other person on the user's team)
+            # Partner Logic (The other person on your team)
             my_team = teams[user_team_idx]
             for p_key in ["player1", "player2"]:
                 p = my_team.get(p_key, {})
@@ -167,7 +168,7 @@ def get_detailed_match_history(numeric_id, token):
                         else: stats["losses"] += 1
                         partner_stats[name] = stats
 
-            # 3. Extract Opponents (Both people on the other team)
+            # Opponent Logic (Everyone on the opposite team)
             other_team_idx = 1 if user_team_idx == 0 else 0
             other_team = teams[other_team_idx]
             for o_key in ["player1", "player2"]:
@@ -183,7 +184,6 @@ def get_detailed_match_history(numeric_id, token):
                     
         return partner_stats, opponent_stats
     except Exception as e:
-        print(f"Match History Error: {e}")
         return {}, {}
 
 # --- APP FLOW ---
@@ -216,30 +216,23 @@ if submit_button:
             with st.spinner("Analyzing match history..."):
                 p_stats, o_stats = get_detailed_match_history(numeric_id, token)
 
-            if p_stats and o_stats:
+            # --- INDENTATION FIXED BELOW ---
+            if p_stats or o_stats:
                 col_p, col_o = st.columns(2)
-                
+    
                 with col_p:
                     st.subheader("Top Partners")
-                    pdf = pd.DataFrame.from_dict(p_stats, orient='index')
-                    if not pdf.empty:
-                        # Sort by most games played together
-                        pdf = pdf.sort_values("total", ascending=False).head(10)
-                        # Optional: calculate win %
-                        pdf['win_rate'] = (pdf['wins'] / pdf['total'] * 100).round(1).astype(str) + '%'
-                        st.table(pdf[['wins', 'losses', 'total', 'win_rate']])
+                    if p_stats:
+                        pdf = pd.DataFrame.from_dict(p_stats, orient='index').sort_values("total", ascending=False).head(10)
+                        st.dataframe(pdf) 
                     else:
                         st.write("No partner data found.")
 
                 with col_o:
                     st.subheader("Frequent Opponents")
-                    odf = pd.DataFrame.from_dict(o_stats, orient='index')
-                    if not odf.empty:
-                        odf = odf.sort_values("total", ascending=False).head(10)
-                        odf['win_rate'] = (odf['wins'] / odf['total'] * 100).round(1).astype(str) + '%'
-                        # Renaming 'wins' to 'your_wins' to be clear
-                        odf = odf.rename(columns={"wins": "won_vs", "losses": "lost_vs"})
-                        st.table(odf[['won_vs', 'lost_vs', 'total', 'win_rate']])
+                    if o_stats:
+                        odf = pd.DataFrame.from_dict(o_stats, orient='index').sort_values("total", ascending=False).head(10)
+                        st.dataframe(odf)
                     else:
                         st.write("No opponent data found.")
             else:
