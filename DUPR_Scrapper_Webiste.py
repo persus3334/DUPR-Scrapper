@@ -7,31 +7,22 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
 
 st.title("DUPR Dashboard")
-st.markdown("Enter a DUPR ID below to generate rating history graphs and top teammates.")
+st.markdown("Generate rating history graphs and comprehensive teammate insights.")
 
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
     st.header("Settings")
-    # Use the token you provided as default, but allow users to update it
     DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NTMxMTI0NTQsImp0aSI6IjcyNDQwODgwNTMiLCJzdWIiOiJZM1V1Yldsc1pYTXVOVFZBWjIxaGFXd3VZMjl0IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3NzY2Mjc3MX0.Nx__u9D92UudXrrzgqJylh9noxnpLoh0ple8RUHvfdlqLGCgR_65CZl0gd6eQbYTg9R_CioyYRhXtGm5yVzsKMgiL1DW3VuWTSawbFcTnt67mGLww5bNXTaSn8PFjr5i1l0a3-Ja1aMRMhixtdPasoKXrnYbfYmfoXLyHR12z0FwM-YGK7N6VgdRgM-LNzcID_fLHB3O5OwzNJBHjFI7lo4ozHJzgA8sCflismGZvPErBO_ckapU-6v5jLm5gBzk6iDvDWIh92qSganh-Nq6ZuIBcFc1zp3FnXsqTtTMcFBXWEas350-ZKatEQqzXGdxZo3QqTCuPf-Cspp9rAcWIw"
     token = DEFAULT_TOKEN
     player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
-    submit_button = st.button("Generate Plots")
+    submit_button = st.button("Generate Dashboard")
 
 # --- CORE FUNCTIONS ---
 
 def get_numeric_id(dupr_id, bearer_token):
     url = "https://api.dupr.gg/player/v1.0/search"
-    headers = {
-        "Authorization": f"Bearer {bearer_token}",
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
-    }
-    payload = {
-        "limit": 10, "offset": 0, "query": dupr_id, "exclude": [],
-        "includeUnclaimedPlayers": True,
-        "filter": {"lat": 33.7, "lng": -84.7, "rating": {"maxRating": None, "minRating": None}, "locationText": ""}
-    }
+    headers = {"Authorization": f"Bearer {bearer_token}", "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+    payload = {"limit": 10, "offset": 0, "query": dupr_id, "includeUnclaimedPlayers": True}
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         if response.status_code == 200:
@@ -39,9 +30,8 @@ def get_numeric_id(dupr_id, bearer_token):
             for player in hits:
                 if player.get("duprId", "").upper() == dupr_id.upper():
                     return str(player.get("id")), player.get("fullName")
-        return None, None
-    except Exception:
-        return None, None
+    except: pass
+    return None, None
 
 def get_rating_history(numeric_id, match_type, bearer_token):
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/rating-history"
@@ -49,211 +39,124 @@ def get_rating_history(numeric_id, match_type, bearer_token):
     payload = {"limit": 10000, "type": match_type}
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
-        if response.status_code == 200:
-            return response.json()
-        return None
-    except Exception:
-        return None
+        return response.json() if response.status_code == 200 else None
+    except: return None
 
 def render_plot(json_data, title, is_daily=False):
-    # 1. Check if the JSON actually has results
     if not json_data or "result" not in json_data:
-        st.warning(f"No data found for {title}")
+        st.warning(f"No data for {title}")
         return
-
     history = json_data['result'].get('ratingHistory', [])
-    if not history or len(history) == 0:
-        st.warning(f"No match history recorded for {title}")
-        return
-
-    # 2. Convert to DataFrame
+    if not history: return
+    
     df = pd.DataFrame(history)
-
-    if df.empty or 'rating' not in df.columns:
-        st.warning(f"No rating data available for {title}")
-        return
-
-    # 3. Clean and Sort
     df['matchDate'] = pd.to_datetime(df['matchDate'])
     df = df.sort_values('matchDate')
-
-    # 4. Handle Daily Logic
     if is_daily:
         df = df.groupby('matchDate').tail(1).copy()
-
-    # 5. Safety Math (The Fix)
-    # If there's only 1 match, we can't calculate a 'delta' (change)
-    if len(df) > 1:
-        try:
-            df['delta'] = df['rating'].diff()
-            df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
-        except Exception:
-            # If the math fails for any reason, just use the original data
-            df_plot = df.copy()
-    else:
-        df_plot = df.copy()
-
-    # 6. Create Plot
-    if df_plot.empty:
-        st.warning(f"No plottable data for {title}")
-        return
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(df_plot['matchDate'], df_plot['rating'], 
-             marker='o', markersize=4, markerfacecolor='red', 
-             linestyle='--', linewidth=1, color='#000000')
-
-    ax.set_title(title, fontsize=12)
-    ax.set_xlabel("Date")
-    ax.set_ylabel("Rating")
-    ax.grid(True, alpha=0.2)
+    
+    fig, ax = plt.subplots(figsize=(10, 4))
+    ax.plot(df['matchDate'], df['rating'], marker='o', markersize=3, linestyle='--', linewidth=1, color='#007BFF')
+    ax.set_title(title)
+    ax.grid(True, alpha=0.3)
     plt.xticks(rotation=45)
-
     st.pyplot(fig)
 
 def get_detailed_match_history(numeric_id, token):
-    # FIX 1: Use the specific URL format from your F12
-    # This URL matches your F12: /player/v1.0/{id}/history
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/history"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
 
-    headers = {
-        "Authorization": f"Bearer {token}", 
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
-    }
+    partner_stats, opponent_stats = {}, {}
+    offset, limit = 0, 25
 
-    # FIX 2: Use the exact payload structure you saw earlier
-    # This payload matches your F12 structure
-    payload = {
-        "limit": 10000,
-        "offset": 0,
-        "filters": {
-            "eventFormat": "DOUBLES" 
-        },
-        "sort": {
-            "order": "DESC", 
-            "parameter": "MATCH_DATE"
+    while True:
+        payload = {
+            "filters": {"eventFormat": None},
+            "limit": limit, "offset": offset,
+            "sort": {"order": "DESC", "parameter": "MATCH_DATE"}
         }
-    }
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=15)
+            if response.status_code != 200: break
 
-    try:
-        response = requests.post(url, headers=headers, json=payload, timeout=15)
-        if response.status_code != 200:
-            return {}, {}
+            result = response.json().get("result", {})
+            matches = result.get("hits", [])
+            
+            for m in matches:
+                teams = m.get("teams", [])
+                if len(teams) < 2: continue
 
-        data = response.json()
-        # The F12 showed the list is in 'hits'
-        # Your F12 showed 'hits' inside 'result'
-        matches = data.get("result", {}).get("hits", [])
+                user_team_idx, user_won = -1, False
+                for i, team in enumerate(teams):
+                    p1, p2 = team.get("player1") or {}, team.get("player2") or {}
+                    if str(p1.get("id")) == str(numeric_id) or str(p2.get("id")) == str(numeric_id):
+                        user_team_idx, user_won = i, team.get("winner") is True
+                        break
 
-        partner_stats = {}
-        opponent_stats = {}
+                if user_team_idx == -1: continue
 
-        for m in matches:
-            teams = m.get("teams", [])
-            if len(teams) < 2: continue
+                # Partners
+                my_team = teams[user_team_idx]
+                for p_key in ["player1", "player2"]:
+                    p = my_team.get(p_key) or {}
+                    if p.get("id") and str(p.get("id")) != str(numeric_id):
+                        name = p.get("fullName", "Unknown")
+                        s = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        s["total"] += 1
+                        if user_won: s["wins"] += 1
+                        else: s["losses"] += 1
+                        partner_stats[name] = s
 
-            user_won = False
-            user_team_idx = -1
+                # Opponents
+                other_team = teams[1 if user_team_idx == 0 else 0]
+                for o_key in ["player1", "player2"]:
+                    o = other_team.get(o_key) or {}
+                    if o.get("fullName"):
+                        name = o.get("fullName")
+                        s = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        s["total"] += 1
+                        if user_won: s["wins"] += 1
+                        else: s["losses"] += 1
+                        opponent_stats[name] = s
 
-            # Find the user's team
-            for i, team in enumerate(teams):
-                # The F12 showed player1 and player2 keys
-                p1 = team.get("player1") or {}
-                p2 = team.get("player2") or {}
+            if not result.get("hasMore") or len(matches) == 0 or offset > 500: break # Safety cap
+            offset += limit
+        except: break
 
-                # Compare IDs as strings to be safe
-                if str(p1.get("id")) == str(numeric_id) or str(p2.get("id")) == str(numeric_id):
-                    user_team_idx = i
-                    if team.get("winner") is True:
-                        user_won = True
-                    break
-
-            if user_team_idx == -1: continue 
-
-            # Extract Partner
-            # Partner Extraction
-            my_team = teams[user_team_idx]
-            for p_key in ["player1", "player2"]:
-                p = my_team.get(p_key) or {}
-                p_id = p.get("id")
-                if p_id and str(p_id) != str(numeric_id):
-                    name = p.get("fullName", "Unknown")
-                    stats = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
-                    stats["total"] += 1
-                    if user_won: stats["wins"] += 1
-                    else: stats["losses"] += 1
-                    partner_stats[name] = stats
-
-            # Extract Opponents
-            # Opponent Extraction
-            other_team_idx = 1 if user_team_idx == 0 else 0
-            other_team = teams[other_team_idx]
-            for o_key in ["player1", "player2"]:
-                o = other_team.get(o_key) or {}
-                name = o.get("fullName")
-                if name:
-                    stats = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
-                    stats["total"] += 1
-                    if user_won: stats["wins"] += 1
-                    else: stats["losses"] += 1
-                    opponent_stats[name] = stats
-
-        return partner_stats, opponent_stats
-    except Exception:
-        return {}, {}
+    return partner_stats, opponent_stats
 
 # --- APP FLOW ---
 
-if submit_button:
-    with st.spinner("Finding player and fetching data..."):
+if submit_button and player_id:
+    with st.spinner("Analyzing Player Data..."):
         numeric_id, full_name = get_numeric_id(player_id, token)
 
         if numeric_id:
-            st.success(f"Dashboard for: **{full_name}**")
-
-            # 1. RATINGS SECTION
-            doubles_json = get_rating_history(numeric_id, "DOUBLES", token)
-            singles_json = get_rating_history(numeric_id, "SINGLES", token)
-
+            st.header(f"Insights for {full_name}")
+            
+            # 1. Rating History
             col1, col2 = st.columns(2)
             with col1:
-                st.subheader("Doubles Metrics")
-                render_plot(doubles_json, "Full Doubles History", is_daily=False)
-                render_plot(doubles_json, "Final Doubles Daily", is_daily=True)
+                render_plot(get_rating_history(numeric_id, "DOUBLES", token), "Doubles Progression")
             with col2:
-                st.subheader("Singles Metrics")
-                render_plot(singles_json, "Full Singles History", is_daily=False)
-                render_plot(singles_json, "Final Singles Daily", is_daily=True)
+                render_plot(get_rating_history(numeric_id, "SINGLES", token), "Singles Progression")
 
-            # 2. MATCH HISTORY / INSIGHTS SECTION
+            # 2. Partner Analysis
             st.divider()
-            st.header("Partner Insights")
+            p_stats, o_stats = get_detailed_match_history(numeric_id, token)
 
-            with st.spinner("Analyzing match history..."):
-                p_stats, o_stats = get_detailed_match_history(numeric_id, token)
-
-            # --- INDENTATION FIXED BELOW ---
-            if p_stats or o_stats:
-                col_p, col_o = st.columns(2)
-
-                with col_p:
-                    st.subheader("Top Partners")
-                    if p_stats:
-                        pdf = pd.DataFrame.from_dict(p_stats, orient='index').sort_values("total", ascending=False).head(10)
-                        st.dataframe(pdf) 
-                    else:
-                        st.write("No partner data found.")
-
-                with col_o:
-                    st.subheader("Frequent Opponents")
-                    if o_stats:
-                        odf = pd.DataFrame.from_dict(o_stats, orient='index').sort_values("total", ascending=False).head(10)
-                        st.dataframe(odf)
-                    else:
-                        st.write("No opponent data found.")
+            if p_stats:
+                st.subheader("Partner Performance (Min 5 Games)")
+                # Processing for Table
+                data = []
+                for name, s in p_stats.items():
+                    if s["total"] >= 5:
+                        win_p = (s["wins"] / s["total"]) * 100
+                        data.append({"Partner": name, "W": s["wins"], "L": s["losses"], "Total": s["total"], "Win %": round(win_p, 1)})
+                
+                df_partners = pd.DataFrame(data).sort_values("Win %", ascending=False)
+                st.dataframe(df_partners, use_container_width=True, hide_index=True)
             else:
-                st.info("No detailed match history available to analyze.")
-
+                st.info("No detailed partner history found.")
         else:
-            st.error("Could not find player. Please check the DUPR ID or Token.")
+            st.error("Player not found. Check DUPR ID.")
