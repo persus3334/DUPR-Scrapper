@@ -112,7 +112,7 @@ def render_plot(json_data, title, is_daily=False):
     st.pyplot(fig)
 
 def get_detailed_match_history(numeric_id, token):
-    # FIX 1: Use the specific URL format from your F12
+    # This URL matches your F12: /player/v1.0/{id}/history
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/history"
     
     headers = {
@@ -121,7 +121,7 @@ def get_detailed_match_history(numeric_id, token):
         "User-Agent": "Mozilla/5.0"
     }
     
-    # FIX 2: Use the exact payload structure you saw earlier
+    # This payload matches your F12 structure
     payload = {
         "limit": 10000,
         "offset": 0,
@@ -140,7 +140,7 @@ def get_detailed_match_history(numeric_id, token):
             return {}, {}
         
         data = response.json()
-        # The F12 showed the list is in 'hits'
+        # Your F12 showed 'hits' inside 'result'
         matches = data.get("result", {}).get("hits", [])
         
         partner_stats = {}
@@ -153,11 +153,12 @@ def get_detailed_match_history(numeric_id, token):
             user_won = False
             user_team_idx = -1
             
+            # Find the user's team
             for i, team in enumerate(teams):
-                # The F12 showed player1 and player2 keys
                 p1 = team.get("player1") or {}
                 p2 = team.get("player2") or {}
                 
+                # Compare IDs as strings to be safe
                 if str(p1.get("id")) == str(numeric_id) or str(p2.get("id")) == str(numeric_id):
                     user_team_idx = i
                     if team.get("winner") is True:
@@ -166,7 +167,7 @@ def get_detailed_match_history(numeric_id, token):
             
             if user_team_idx == -1: continue 
 
-            # Extract Partner
+            # Partner Extraction
             my_team = teams[user_team_idx]
             for p_key in ["player1", "player2"]:
                 p = my_team.get(p_key) or {}
@@ -179,7 +180,7 @@ def get_detailed_match_history(numeric_id, token):
                     else: stats["losses"] += 1
                     partner_stats[name] = stats
 
-            # Extract Opponents
+            # Opponent Extraction
             other_team_idx = 1 if user_team_idx == 0 else 0
             other_team = teams[other_team_idx]
             for o_key in ["player1", "player2"]:
