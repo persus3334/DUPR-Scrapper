@@ -62,31 +62,40 @@ def render_plot(json_data, title, is_daily=False):
         return
 
     history = json_data['result'].get('ratingHistory', [])
-    if not history:
-        st.warning(f"History is empty for {title}")
+    if not history or len(history) == 0:
+        st.warning(f"No match history recorded for {title}")
         return
 
     # 2. Convert to DataFrame
     df = pd.DataFrame(history)
     
-    # --- THIS IS THE NEW FIX ---
     if df.empty or 'rating' not in df.columns:
-        st.warning(f"No match history recorded for {title}")
+        st.warning(f"No rating data available for {title}")
         return
-    # ---------------------------
 
+    # 3. Clean and Sort
     df['matchDate'] = pd.to_datetime(df['matchDate'])
     df = df.sort_values('matchDate')
 
+    # 4. Handle Daily Logic
     if is_daily:
         df = df.groupby('matchDate').tail(1).copy()
     
-    # Now it's safe to run .diff() because we know 'rating' exists and has data
-    df['delta'] = df['rating'].diff()
-    df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
+    # 5. Safety Math (The Fix)
+    # If there's only 1 match, we can't calculate a 'delta' (change)
+    if len(df) > 1:
+        try:
+            df['delta'] = df['rating'].diff()
+            df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
+        except Exception:
+            # If the math fails for any reason, just use the original data
+            df_plot = df.copy()
+    else:
+        df_plot = df.copy()
 
+    # 6. Create Plot
     if df_plot.empty:
-        st.warning(f"No rating changes detected for {title}")
+        st.warning(f"No plottable data for {title}")
         return
 
     fig, ax = plt.subplots(figsize=(10, 5))
