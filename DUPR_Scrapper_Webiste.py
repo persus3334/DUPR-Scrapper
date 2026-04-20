@@ -98,7 +98,7 @@ def render_plot(json_data, title, is_daily=False):
         st.warning(f"No plottable data for {title}")
         return
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(df_plot['matchDate'], df_plot['rating'], 
              marker='o', markersize=4, markerfacecolor='red', 
              linestyle='--', linewidth=1, color='#000000')
