@@ -56,6 +56,7 @@ def get_rating_history(numeric_id, match_type, bearer_token):
         return None
 
 def render_plot(json_data, title, is_daily=False):
+    # 1. Check if the JSON actually has results
     if not json_data or "result" not in json_data:
         st.warning(f"No data found for {title}")
         return
@@ -65,13 +66,22 @@ def render_plot(json_data, title, is_daily=False):
         st.warning(f"History is empty for {title}")
         return
 
+    # 2. Convert to DataFrame
     df = pd.DataFrame(history)
+    
+    # --- THIS IS THE NEW FIX ---
+    if df.empty or 'rating' not in df.columns:
+        st.warning(f"No match history recorded for {title}")
+        return
+    # ---------------------------
+
     df['matchDate'] = pd.to_datetime(df['matchDate'])
     df = df.sort_values('matchDate')
 
     if is_daily:
         df = df.groupby('matchDate').tail(1).copy()
     
+    # Now it's safe to run .diff() because we know 'rating' exists and has data
     df['delta'] = df['rating'].diff()
     df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
 
@@ -79,7 +89,6 @@ def render_plot(json_data, title, is_daily=False):
         st.warning(f"No rating changes detected for {title}")
         return
 
-    # Using Matplotlib inside Streamlit
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(df_plot['matchDate'], df_plot['rating'], 
              marker='o', markersize=4, markerfacecolor='red', 
