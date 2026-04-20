@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
 
 st.title("DUPR Dashboard")
-st.markdown("Enter a DUPR ID below to generate rating history graphs and top teammates.")
+st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
 
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
