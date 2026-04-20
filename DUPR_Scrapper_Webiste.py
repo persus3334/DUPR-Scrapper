@@ -115,9 +115,8 @@ def get_detailed_match_history(numeric_id, token):
     url = "https://api.dupr.gg/match/v1.0/player/history"
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
-    # We'll pull the last 100 matches to keep it fast
     payload = {
-        "limit": 10000,
+        "limit": 100,
         "offset": 0,
         "playerId": int(numeric_id),
         "filter": {"matchType": "DOUBLES"} 
@@ -126,56 +125,66 @@ def get_detailed_match_history(numeric_id, token):
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=15)
         if response.status_code != 200:
-            return None
+            return {}, {}
         
-        matches = response.json().get("result", {}).get("matches", [])
+        data = response.json()
+        matches = data.get("result", {}).get("hits", []) # Your F12 shows 'hits', not 'matches'
         
         partner_stats = {}
         opponent_stats = {}
 
         for m in matches:
-            # Determine if you won
-            # DUPR marks the winning team; we check if the user was on it
-            user_won = False
             teams = m.get("teams", [])
+            if len(teams) < 2: continue
+
+            user_won = False
+            user_team_idx = -1
             
-            # Find which team the user was on and who their partner was
-            user_team = None
-            other_team = None
+            # 1. Identify which team the user is on
+            for i, team in enumerate(teams):
+                p1 = team.get("player1", {})
+                p2 = team.get("player2", {})
+                
+                # Check if the numeric ID matches either player on this team
+                if p1.get("id") == int(numeric_id) or p2.get("id") == int(numeric_id):
+                    user_team_idx = i
+                    if team.get("winner") is True:
+                        user_won = True
+                    break
             
-            for team in teams:
-                player_ids = [p.get("id") for p in team.get("players", [])]
-                if int(numeric_id) in player_ids:
-                    user_team = team
-                    if team.get("gameVictories", 0) > 0: # Simplification for "Won"
-                         user_won = True
-                else:
-                    other_team = team
-            
-            # Record Partner Stats
-            if user_team:
-                for p in user_team.get("players", []):
-                    if p.get("id") != int(numeric_id):
-                        name = p.get("fullName")
+            if user_team_idx == -1: continue # User not found in this match
+
+            # 2. Extract Partner (The other person on the user's team)
+            my_team = teams[user_team_idx]
+            for p_key in ["player1", "player2"]:
+                p = my_team.get(p_key, {})
+                if p and p.get("id") != int(numeric_id):
+                    name = p.get("fullName")
+                    if name:
                         stats = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
                         stats["total"] += 1
                         if user_won: stats["wins"] += 1
                         else: stats["losses"] += 1
                         partner_stats[name] = stats
 
-            # Record Opponent Stats
-            if other_team:
-                for o in other_team.get("players", []):
+            # 3. Extract Opponents (Both people on the other team)
+            other_team_idx = 1 if user_team_idx == 0 else 0
+            other_team = teams[other_team_idx]
+            for o_key in ["player1", "player2"]:
+                o = other_team.get(o_key, {})
+                if o:
                     name = o.get("fullName")
-                    stats = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
-                    stats["total"] += 1
-                    if user_won: stats["wins"] += 1
-                    else: stats["losses"] += 1
-                    opponent_stats[name] = stats
+                    if name:
+                        stats = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        stats["total"] += 1
+                        if user_won: stats["wins"] += 1
+                        else: stats["losses"] += 1
+                        opponent_stats[name] = stats
                     
         return partner_stats, opponent_stats
-    except:
-        return None, None
+    except Exception as e:
+        print(f"Match History Error: {e}")
+        return {}, {}
 
 # --- APP FLOW ---
 
