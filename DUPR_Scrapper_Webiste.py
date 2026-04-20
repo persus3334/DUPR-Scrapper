@@ -112,21 +112,21 @@ def render_plot(json_data, title, is_daily=False):
     st.pyplot(fig)
 
 def get_detailed_match_history(numeric_id, token):
-    # Notice we keep numeric_id in the URL, as most DUPR match endpoints use it there
-    url = "https://api.dupr.gg/match/v1.0/player/history"
+    # FIX 1: Use the specific URL format from your F12
+    url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/history"
+    
     headers = {
         "Authorization": f"Bearer {token}", 
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0"
     }
     
-    # This matches your F12 screenshot exactly
+    # FIX 2: Use the exact payload structure you saw earlier
     payload = {
-        "playerId": int(numeric_id),
         "limit": 10000,
         "offset": 0,
         "filters": {
-            "eventFormat": "DOUBLES" # We filter for doubles to get partners
+            "eventFormat": "DOUBLES" 
         },
         "sort": {
             "order": "DESC", 
@@ -140,7 +140,7 @@ def get_detailed_match_history(numeric_id, token):
             return {}, {}
         
         data = response.json()
-        # hits is inside result
+        # The F12 showed the list is in 'hits'
         matches = data.get("result", {}).get("hits", [])
         
         partner_stats = {}
@@ -154,11 +154,11 @@ def get_detailed_match_history(numeric_id, token):
             user_team_idx = -1
             
             for i, team in enumerate(teams):
-                # Using .get() defensively in case player1 or player2 is missing
+                # The F12 showed player1 and player2 keys
                 p1 = team.get("player1") or {}
                 p2 = team.get("player2") or {}
                 
-                if p1.get("id") == int(numeric_id) or p2.get("id") == int(numeric_id):
+                if str(p1.get("id")) == str(numeric_id) or str(p2.get("id")) == str(numeric_id):
                     user_team_idx = i
                     if team.get("winner") is True:
                         user_won = True
@@ -166,12 +166,12 @@ def get_detailed_match_history(numeric_id, token):
             
             if user_team_idx == -1: continue 
 
-            # Partner Extraction
+            # Extract Partner
             my_team = teams[user_team_idx]
             for p_key in ["player1", "player2"]:
                 p = my_team.get(p_key) or {}
                 p_id = p.get("id")
-                if p_id and int(p_id) != int(numeric_id):
+                if p_id and str(p_id) != str(numeric_id):
                     name = p.get("fullName", "Unknown")
                     stats = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
                     stats["total"] += 1
@@ -179,7 +179,7 @@ def get_detailed_match_history(numeric_id, token):
                     else: stats["losses"] += 1
                     partner_stats[name] = stats
 
-            # Opponent Extraction
+            # Extract Opponents
             other_team_idx = 1 if user_team_idx == 0 else 0
             other_team = teams[other_team_idx]
             for o_key in ["player1", "player2"]:
@@ -193,7 +193,7 @@ def get_detailed_match_history(numeric_id, token):
                     opponent_stats[name] = stats
                     
         return partner_stats, opponent_stats
-    except Exception as e:
+    except Exception:
         return {}, {}
 
 # --- APP FLOW ---
