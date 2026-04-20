@@ -111,6 +111,72 @@ def render_plot(json_data, title, is_daily=False):
     
     st.pyplot(fig)
 
+def get_detailed_match_history(numeric_id, token):
+    url = "https://api.dupr.gg/match/v1.0/player/history"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+    # We'll pull the last 100 matches to keep it fast
+    payload = {
+        "limit": 100,
+        "offset": 0,
+        "playerId": int(numeric_id),
+        "filter": {"matchType": "DOUBLES"} 
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=15)
+        if response.status_code != 200:
+            return None
+        
+        matches = response.json().get("result", {}).get("matches", [])
+        
+        partner_stats = {}
+        opponent_stats = {}
+
+        for m in matches:
+            # Determine if you won
+            # DUPR marks the winning team; we check if the user was on it
+            user_won = False
+            teams = m.get("teams", [])
+            
+            # Find which team the user was on and who their partner was
+            user_team = None
+            other_team = None
+            
+            for team in teams:
+                player_ids = [p.get("id") for p in team.get("players", [])]
+                if int(numeric_id) in player_ids:
+                    user_team = team
+                    if team.get("gameVictories", 0) > 0: # Simplification for "Won"
+                         user_won = True
+                else:
+                    other_team = team
+            
+            # Record Partner Stats
+            if user_team:
+                for p in user_team.get("players", []):
+                    if p.get("id") != int(numeric_id):
+                        name = p.get("fullName")
+                        stats = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        stats["total"] += 1
+                        if user_won: stats["wins"] += 1
+                        else: stats["losses"] += 1
+                        partner_stats[name] = stats
+
+            # Record Opponent Stats
+            if other_team:
+                for o in other_team.get("players", []):
+                    name = o.get("fullName")
+                    stats = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                    stats["total"] += 1
+                    if user_won: stats["wins"] += 1
+                    else: stats["losses"] += 1
+                    opponent_stats[name] = stats
+                    
+        return partner_stats, opponent_stats
+    except:
+        return None, None
+
 # --- APP FLOW ---
 
 if submit_button:
@@ -120,21 +186,56 @@ if submit_button:
         if numeric_id:
             st.success(f"Dashboard for: **{full_name}**")
             
-            # Fetch data once per type
+            # 1. RATINGS SECTION
             doubles_json = get_rating_history(numeric_id, "DOUBLES", token)
             singles_json = get_rating_history(numeric_id, "SINGLES", token)
 
-            # Layout: 2 Columns
             col1, col2 = st.columns(2)
-
             with col1:
                 st.subheader("Doubles Metrics")
                 render_plot(doubles_json, "Full Doubles History", is_daily=False)
                 render_plot(doubles_json, "Final Doubles Daily", is_daily=True)
-
             with col2:
                 st.subheader("Singles Metrics")
                 render_plot(singles_json, "Full Singles History", is_daily=False)
                 render_plot(singles_json, "Final Singles Daily", is_daily=True)
+
+            # 2. MATCH HISTORY / INSIGHTS SECTION
+            st.divider()
+            st.header("🤝 Partner & ⚔️ Opponent Insights")
+            st.caption("Based on the last 100 Doubles matches")
+            
+            with st.spinner("Analyzing match history..."):
+                p_stats, o_stats = get_detailed_match_history(numeric_id, token)
+
+            if p_stats and o_stats:
+                col_p, col_o = st.columns(2)
+                
+                with col_p:
+                    st.subheader("Top Partners")
+                    pdf = pd.DataFrame.from_dict(p_stats, orient='index')
+                    if not pdf.empty:
+                        # Sort by most games played together
+                        pdf = pdf.sort_values("total", ascending=False).head(10)
+                        # Optional: calculate win %
+                        pdf['win_rate'] = (pdf['wins'] / pdf['total'] * 100).round(1).astype(str) + '%'
+                        st.table(pdf[['wins', 'losses', 'total', 'win_rate']])
+                    else:
+                        st.write("No partner data found.")
+
+                with col_o:
+                    st.subheader("Frequent Opponents")
+                    odf = pd.DataFrame.from_dict(o_stats, orient='index')
+                    if not odf.empty:
+                        odf = odf.sort_values("total", ascending=False).head(10)
+                        odf['win_rate'] = (odf['wins'] / odf['total'] * 100).round(1).astype(str) + '%'
+                        # Renaming 'wins' to 'your_wins' to be clear
+                        odf = odf.rename(columns={"wins": "won_vs", "losses": "lost_vs"})
+                        st.table(odf[['won_vs', 'lost_vs', 'total', 'win_rate']])
+                    else:
+                        st.write("No opponent data found.")
+            else:
+                st.info("No detailed match history available to analyze.")
+                
         else:
             st.error("Could not find player. Please check the DUPR ID or Token.")
