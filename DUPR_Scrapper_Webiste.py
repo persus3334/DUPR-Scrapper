@@ -2,6 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
+import random
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="DUPR Dashboard", layout="wide")
@@ -13,16 +15,42 @@ player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
 min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
 submit_button = st.button("Generate Results")
 
-
-DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4ODA0NjAsImp0aSI6IjU3MjkwMjczNDMiLCJzdWIiOiJjR1Z5YzNWek16TXpNMEJuYldGcGJDNWpiMjA9IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ3MjQ2MH0.lOP9C4UKTfPiRI4aBO3Uz2TmMRIJ5wSAIVyZ3jt1bbR54fun5l3Lr_-BIU5w4ZSjUYwSxMbrz7cr0m0TnrvfXPbpdF_QqcPrYmHfj2qRDCRmvMKEatjv2juhQNE0FgDBICOK2Qq3FmJoMKGoaIYG0bOC5j3mv8FX5oge5KgHCb1j286UmkmQNODkWNHXjAwPCKL9-bn4mJndAHS1cZdVoonTjavUYJLQmkz_x6iVHGpPXv5xX4Vl90O8fBOg2kBI2T6Dj0X0BJ88xvzHlUKyj4zQzI9U-l_GK4TeiIRFicZS1nSRhhpkN9X2LgPBYnQg-cSAUSG5Gfc0TGhi1YpD0Q"
+DEFAULT_TOKEN = ""
 token = DEFAULT_TOKEN
 # --- CORE FUNCTIONS ---
 
+# 1. ADD THIS: Human-like headers to avoid bot detection
+headers_template = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+}
 
-def get_numeric_id(dupr_id, bearer_token):
+# 2. ADD THIS: Cached login to prevent "brute force" flagging
+@st.cache_data(ttl=43200) 
+def get_system_token():
+    # It pulls from your Streamlit Secrets (Settings > Secrets on the cloud)
+    try:
+        email = st.secrets["dupr_auth"]["email"]
+        password = st.secrets["dupr_auth"]["password"]
+    
+        url = "https://api.dupr.gg/auth/v1.0/login"
+        payload = {"email": email, "password": password}
+        
+        # Add a tiny "human" delay
+        time.sleep(random.uniform(0.5, 1.5))
+        
+        response = requests.post(url, json=payload, headers=headers_template, timeout=10)
+        if response.status_code == 200:
+            return response.json().get("result", {}).get("accessToken")
+    except Exception as e:
+        st.error(f"Authentication Error: {e}")
+    return None
+
+def get_numeric_id(dupr_id, current_token):
     url = "https://api.dupr.gg/player/v1.0/search"
     headers = {
-        "Authorization": f"Bearer {bearer_token}",
+        "Authorization": f"Bearer {current_token}",
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0"
     }
@@ -42,9 +70,9 @@ def get_numeric_id(dupr_id, bearer_token):
     except Exception:
         return None, None
 
-def get_rating_history(numeric_id, match_type, bearer_token):
+def get_rating_history(numeric_id, match_type, current_token):
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/rating-history"
-    headers = {"Authorization": f"Bearer {bearer_token}"}
+    headers = {"Authorization": f"Bearer {current_token}"}
     payload = {"limit": 10000, "type": match_type}
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
@@ -99,10 +127,10 @@ def render_plot(json_data, title, is_daily=False):
     plt.xticks(rotation=45)
     st.pyplot(fig)
 
-def get_detailed_match_history(numeric_id, token):
+def get_detailed_match_history(numeric_id, current_token):
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/history"
     headers = {
-        "Authorization": f"Bearer {token}",
+        "Authorization": f"Bearer {current_token}",
         "Content-Type": "application/json",
         "User-Agent": "Mozilla/5.0"
     }
@@ -233,14 +261,21 @@ def build_stats_df(stats_dict, min_matches):
 # --- APP FLOW ---
 
 if submit_button:
+    # 3. ADD THIS: Get the fresh token first
+    current_token = get_system_token()
+    
+    if not current_token:
+        st.error("Website is currently under maintenance (Auth Error).")
+        st.stop()
+    
     with st.spinner("Finding player and fetching data..."):
-        numeric_id, full_name = get_numeric_id(player_id, token)
+        numeric_id, full_name = get_numeric_id(player_id, current_token)
 
         if numeric_id:
             st.success(f"Dashboard for: **{full_name}**")
 
-            doubles_json = get_rating_history(numeric_id, "DOUBLES", token)
-            singles_json = get_rating_history(numeric_id, "SINGLES", token)
+            doubles_json = get_rating_history(numeric_id, "DOUBLES", current_token)
+            singles_json = get_rating_history(numeric_id, "SINGLES", current_token)
 
             col1, col2 = st.columns(2)
             with col1:
@@ -256,7 +291,7 @@ if submit_button:
             st.header("Partner Insights")
 
             with st.spinner("Analyzing match history..."):
-                p_stats, o_stats = get_detailed_match_history(numeric_id, token)
+                p_stats, o_stats = get_detailed_match_history(numeric_id, current_token)
 
             if p_stats or o_stats:
                 col_p, col_o = st.columns(2)
