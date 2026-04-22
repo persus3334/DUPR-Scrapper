@@ -4,10 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
+st.set_page_config(page_title="Testing", layout="wide")
 
 # --- MAIN INPUT AREA ---
-st.title("DUPR Dashboard")
+st.title("Test")
 st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
 player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
 min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
@@ -17,6 +17,7 @@ submit_button = st.button("Generate Results")
 DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4NzI0MzEsImp0aSI6IjYzNzM2NzY5ODEiLCJzdWIiOiJjR1Z5YzNWek16TXpNMEJuYldGcGJDNWpiMjA9IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ2NDQzMX0.aovNkA9hT6IRqFlj3IHLzHPw9M9lh9_202VWALVZyM2pDih9-lksBJGWjiEBXnHwlP2FrqtwzxKqYqUqVgEfCNCsiKzouDpYVqbjqCgaVxzyFXI8HsIcSF3IfAA-lIQ3CtIUi3r9jqXgOEPIvBwQ5plPfHPiuA_tfUH0hsw9RIokJ3KpOEY4HTtHQTP87VdEdi9yJ7h5KeeLGwU5e4vhN0qgR416PCQwbQSSmbwfW3RODzKNkffaW4BxFEAHHTSK-KOwxbReCf_ppMqjCn46QXusapmN90DKHITEnZApxU7keKtTQEGKkYAF72puSUSMDrtoHd7b0wpayNsC-y6vAg"
 token = DEFAULT_TOKEN
 # --- CORE FUNCTIONS ---
+
 
 def get_numeric_id(dupr_id, bearer_token):
     url = "https://api.dupr.gg/player/v1.0/search"
@@ -148,31 +149,51 @@ def get_detailed_match_history(numeric_id, token):
                 if user_team_idx == -1:
                     continue
 
+                # Determine user's slot by matching id field directly
                 my_team = teams[user_team_idx]
+                pre = my_team.get("preMatchRatingAndImpact") or {}
+
+                if str((my_team.get("player1") or {}).get("id")) == str(numeric_id):
+                    dupr_delta = pre.get("matchDoubleRatingImpactPlayer1")
+                elif str((my_team.get("player2") or {}).get("id")) == str(numeric_id):
+                    dupr_delta = pre.get("matchDoubleRatingImpactPlayer2")
+                else:
+                    dupr_delta = None
+
+                # Partner logic
                 for p_key in ["player1", "player2"]:
                     p = my_team.get(p_key) or {}
                     p_id = p.get("id")
                     if p_id and str(p_id) != str(numeric_id):
                         name = p.get("fullName", "Unknown")
-                        stats = partner_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        stats = partner_stats.get(name, {
+                            "wins": 0, "losses": 0, "total": 0, "dupr_delta": 0.0
+                        })
                         stats["total"] += 1
                         if user_won:
                             stats["wins"] += 1
                         else:
                             stats["losses"] += 1
+                        if dupr_delta is not None:
+                            stats["dupr_delta"] += dupr_delta
                         partner_stats[name] = stats
 
+                # Opponent logic
                 other_team = teams[1 if user_team_idx == 0 else 0]
                 for o_key in ["player1", "player2"]:
                     o = other_team.get(o_key) or {}
                     name = o.get("fullName")
                     if name:
-                        stats = opponent_stats.get(name, {"wins": 0, "losses": 0, "total": 0})
+                        stats = opponent_stats.get(name, {
+                            "wins": 0, "losses": 0, "total": 0, "dupr_delta": 0.0
+                        })
                         stats["total"] += 1
                         if user_won:
                             stats["wins"] += 1
                         else:
                             stats["losses"] += 1
+                        if dupr_delta is not None:
+                            stats["dupr_delta"] += dupr_delta
                         opponent_stats[name] = stats
 
             if not has_more or len(matches) == 0:
@@ -187,17 +208,25 @@ def get_detailed_match_history(numeric_id, token):
     return partner_stats, opponent_stats
 
 def build_stats_df(stats_dict, min_matches):
-    """Filter by min_matches, add Win % column, sort by Win % descending."""
     filtered = {k: v for k, v in stats_dict.items() if v["total"] >= min_matches}
     if not filtered:
         return pd.DataFrame()
     df = pd.DataFrame.from_dict(filtered, orient="index")
     df.index.name = "Name"
     df["win_pct"] = (df["wins"] / df["total"] * 100).round(1)
-    df = df.sort_values("win_pct", ascending=False)
-    df = df.rename(columns={"wins": "W", "losses": "L", "total": "Total", "win_pct": "Win %"})
+    df["dupr_delta"] = df["dupr_delta"].round(3)
+    df["dupr_delta_per"] = ((df["dupr_delta"].round(3)) / (df["total"]))
+    df = df.sort_values("dupr_delta_per", ascending=False)
+    df = df.rename(columns={
+        "wins": "W",
+        "losses": "L",
+        "total": "Total",
+        "win_pct": "Win %",
+        "dupr_delta": "DUPR +/-",
+        "dupr_delta_per": "DUPR +/- per match"
+    })
     df["Win %"] = df["Win %"].astype(str) + "%"
-    return df[["W", "L", "Total", "Win %"]]
+    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
 
 # --- APP FLOW ---
 
