@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
+st.set_page_config(page_title="Testing", layout="wide")
 
 # --- MAIN INPUT AREA ---
 st.title("DUPR Dashboard")
