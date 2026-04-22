@@ -6,10 +6,10 @@ import time
 import random
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="Testing", layout="wide")
+st.set_page_config(page_title="DUPR Dashboard", layout="wide")
 
 # --- MAIN INPUT AREA ---
-st.title("Test Strings")
+st.title("DUPR Dashboard")
 st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
 player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
 min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
