@@ -223,7 +223,7 @@ def build_stats_df(stats_dict, min_matches):
         "total": "Total",
         "win_pct": "Win %",
         "dupr_delta": "DUPR +/-",
-        "dupr_delta_per": "DUPR +/- per match"
+        "dupr_delta_per": "DUPR +/- Per Match"
     })
     df["Win %"] = df["Win %"].astype(str) + "%"
     return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
