@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
+st.set_page_config(page_title="DUPR Dashboard", layout="wide")
 
 # --- MAIN INPUT AREA ---
 st.title("DUPR Dashboard")
@@ -14,7 +14,7 @@ min_matches = st.number_input("Min matches for partner/opponent table", min_valu
 submit_button = st.button("Generate Results")
 
 
-DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4NzI0MzEsImp0aSI6IjYzNzM2NzY5ODEiLCJzdWIiOiJjR1Z5YzNWek16TXpNMEJuYldGcGJDNWpiMjA9IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ2NDQzMX0.aovNkA9hT6IRqFlj3IHLzHPw9M9lh9_202VWALVZyM2pDih9-lksBJGWjiEBXnHwlP2FrqtwzxKqYqUqVgEfCNCsiKzouDpYVqbjqCgaVxzyFXI8HsIcSF3IfAA-lIQ3CtIUi3r9jqXgOEPIvBwQ5plPfHPiuA_tfUH0hsw9RIokJ3KpOEY4HTtHQTP87VdEdi9yJ7h5KeeLGwU5e4vhN0qgR416PCQwbQSSmbwfW3RODzKNkffaW4BxFEAHHTSK-KOwxbReCf_ppMqjCn46QXusapmN90DKHITEnZApxU7keKtTQEGKkYAF72puSUSMDrtoHd7b0wpayNsC-y6vAg"
+DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4NzI0OTgsImp0aSI6IjcyNDQwODgwNTMiLCJzdWIiOiJZM1V1Yldsc1pYTXVOVFZBWjIxaGFXd3VZMjl0IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ2NDQ5OH0.WJf5Ab1gd5baootzUxvIBENcim-4nzCRG4DQNQtueXQNb-DDuN1V0HBCxjRTSxo0YhznSJfNbSUqXoA7jHH27y2K1xzmxFC4hJWsQVZ_vVw9v8ovVhCFLypsIq59BFpiPN8LbU8j29yL0aqEabY2mB0wEaYUffhbIPg4xmCDsw9wwJ2b0CIRveRpQlIQgggOfP8o8P3_dfAwxHvJ-_ZcLcEVbfnU6yxhPP0sFZEH5vargde1nz38gtlskCuXcJh51msBR6NAVbqA1QY829eRp4w9lsiz_81xlg4TpH3p-iNEBHhdHJ3U2CXdP0JYBC0XQi2du5lsXIIdECNuF7e66Q"
 token = DEFAULT_TOKEN
 # --- CORE FUNCTIONS ---
 
@@ -211,8 +211,10 @@ def build_stats_df(stats_dict, min_matches):
     filtered = {k: v for k, v in stats_dict.items() if v["total"] >= min_matches}
     if not filtered:
         return pd.DataFrame()
+
     df = pd.DataFrame.from_dict(filtered, orient="index")
     df.index.name = "Name"
+    
     df["win_pct"] = (df["wins"] / df["total"] * 100).round(1)
     df["dupr_delta"] = df["dupr_delta"].round(3)
     df["dupr_delta_per"] = ((df["dupr_delta"].round(3)) / (df["total"]))
@@ -223,10 +225,10 @@ def build_stats_df(stats_dict, min_matches):
         "total": "Total",
         "win_pct": "Win %",
         "dupr_delta": "DUPR +/-",
-        "dupr_delta_per": "DUPR +/- Per Match"
+        "dupr_delta_per": "DUPR +/- per match"
     })
-    df["Win %"] = df["Win %"].astype(str) + "%"
-    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- Per Match"]]
+    
+    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
 
 # --- APP FLOW ---
 
