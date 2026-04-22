@@ -12,7 +12,7 @@ st.markdown("Enter a DUPR ID below to generate rating history graphs and teammat
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
     st.header("Settings")
-    DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NTMxMTI0NTQsImp0aSI6IjcyNDQwODgwNTMiLCJzdWIiOiJZM1V1Yldsc1pYTXVOVFZBWjIxaGFXd3VZMjl0IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3NzY2Mjc3MX0.Nx__u9D92UudXrrzgqJylh9noxnpLoh0ple8RUHvfdlqLGCgR_65CZl0gd6eQbYTg9R_CioyYRhXtGm5yVzsKMgiL1DW3VuWTSawbFcTnt67mGLww5bNXTaSn8PFjr5i1l0a3-Ja1aMRMhixtdPasoKXrnYbfYmfoXLyHR12z0FwM-YGK7N6VgdRgM-LNzcID_fLHB3O5OwzNJBHjFI7lo4ozHJzgA8sCflismGZvPErBO_ckapU-6v5jLm5gBzk6iDvDWIh92qSganh-Nq6ZuIBcFc1zp3FnXsqTtTMcFBXWEas350-ZKatEQqzXGdxZo3QqTCuPf-Cspp9rAcWIw"
+    DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4NzI0MzEsImp0aSI6IjYzNzM2NzY5ODEiLCJzdWIiOiJjR1Z5YzNWek16TXpNMEJuYldGcGJDNWpiMjA9IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ2NDQzMX0.aovNkA9hT6IRqFlj3IHLzHPw9M9lh9_202VWALVZyM2pDih9-lksBJGWjiEBXnHwlP2FrqtwzxKqYqUqVgEfCNCsiKzouDpYVqbjqCgaVxzyFXI8HsIcSF3IfAA-lIQ3CtIUi3r9jqXgOEPIvBwQ5plPfHPiuA_tfUH0hsw9RIokJ3KpOEY4HTtHQTP87VdEdi9yJ7h5KeeLGwU5e4vhN0qgR416PCQwbQSSmbwfW3RODzKNkffaW4BxFEAHHTSK-KOwxbReCf_ppMqjCn46QXusapmN90DKHITEnZApxU7keKtTQEGKkYAF72puSUSMDrtoHd7b0wpayNsC-y6vAg"
     token = DEFAULT_TOKEN
     player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
     min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
