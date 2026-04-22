@@ -16,7 +16,7 @@ with st.sidebar:
     token = DEFAULT_TOKEN
     player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
     min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
-    submit_button = st.button("Generate Plots")
+    submit_button = st.button("Generate Results")
 
 # --- CORE FUNCTIONS ---
 
