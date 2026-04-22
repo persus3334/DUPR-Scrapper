@@ -211,8 +211,10 @@ def build_stats_df(stats_dict, min_matches):
     filtered = {k: v for k, v in stats_dict.items() if v["total"] >= min_matches}
     if not filtered:
         return pd.DataFrame()
+
     df = pd.DataFrame.from_dict(filtered, orient="index")
     df.index.name = "Name"
+    
     df["win_pct"] = (df["wins"] / df["total"] * 100).round(1)
     df["dupr_delta"] = df["dupr_delta"].round(3)
     df["dupr_delta_per"] = ((df["dupr_delta"].round(3)) / (df["total"]))
@@ -225,7 +227,7 @@ def build_stats_df(stats_dict, min_matches):
         "dupr_delta": "DUPR +/-",
         "dupr_delta_per": "DUPR +/- per match"
     })
-    df["Win %"] = df["Win %"].astype(str) + "%"
+    
     return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
 
 # --- APP FLOW ---
