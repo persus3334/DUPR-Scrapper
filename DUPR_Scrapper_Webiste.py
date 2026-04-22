@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
 
 st.title("DUPR Dashboard")
-st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
 st.markdown("Enter a DUPR ID below to generate rating history graphs and top teammates.")
+st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
 
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
@@ -29,7 +29,6 @@ def get_numeric_id(dupr_id, bearer_token):
         "User-Agent": "Mozilla/5.0"
     }
     payload = {
-        "limit": 10000, "offset": 0, "query": dupr_id, "exclude": [],
         "limit": 10, "offset": 0, "query": dupr_id, "exclude": [],
         "includeUnclaimedPlayers": True,
         "filter": {"lat": 33.7, "lng": -84.7, "rating": {"maxRating": None, "minRating": None}, "locationText": ""}
@@ -64,7 +63,6 @@ def render_plot(json_data, title, is_daily=False):
         return
 
     history = json_data['result'].get('ratingHistory', [])
-    if not history:
     if not history or len(history) == 0:
         st.warning(f"No match history recorded for {title}")
         return
@@ -83,13 +81,10 @@ def render_plot(json_data, title, is_daily=False):
     # 4. Handle Daily Logic
     if is_daily:
         df = df.groupby('matchDate').tail(1).copy()
-    
 
     # 5. Safety Math (The Fix)
     # If there's only 1 match, we can't calculate a 'delta' (change)
     if len(df) > 1:
-        df['delta'] = df['rating'].diff()
-        df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
         try:
             df['delta'] = df['rating'].diff()
             df_plot = df[(df['delta'] != 0) | (df['delta'].isna())].copy()
@@ -108,7 +103,6 @@ def render_plot(json_data, title, is_daily=False):
     ax.plot(df_plot['matchDate'], df_plot['rating'], 
              marker='o', markersize=4, markerfacecolor='red', 
              linestyle='--', linewidth=1, color='#000000')
-    
 
     ax.set_title(title, fontsize=12)
     ax.set_xlabel("Date")
@@ -119,7 +113,6 @@ def render_plot(json_data, title, is_daily=False):
     st.pyplot(fig)
 
 def get_detailed_match_history(numeric_id, token):
-    # FIX 1: Use the specific URL format from your F12
     # This URL matches your F12: /player/v1.0/{id}/history
     url = f"https://api.dupr.gg/player/v1.0/{numeric_id}/history"
 
@@ -129,13 +122,10 @@ def get_detailed_match_history(numeric_id, token):
         "User-Agent": "Mozilla/5.0"
     }
 
-    # FIX 2: Use the exact payload structure you saw earlier
     # This payload matches your F12 structure
     payload = {
         "limit": 10000,
         "offset": 0,
-        "filters": {"eventFormat": "DOUBLES"},
-        "sort": {"order": "DESC", "parameter": "MATCH_DATE"}
         "filters": {
             "eventFormat": "DOUBLES" 
         },
@@ -144,19 +134,15 @@ def get_detailed_match_history(numeric_id, token):
             "parameter": "MATCH_DATE"
         }
     }
-    
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=15)
         if response.status_code != 200:
             return {}, {}
-        
 
         data = response.json()
-        # The F12 showed the list is in 'hits'
         # Your F12 showed 'hits' inside 'result'
         matches = data.get("result", {}).get("hits", [])
-        
 
         partner_stats = {}
         opponent_stats = {}
@@ -167,11 +153,9 @@ def get_detailed_match_history(numeric_id, token):
 
             user_won = False
             user_team_idx = -1
-            
 
             # Find the user's team
             for i, team in enumerate(teams):
-                # The F12 showed player1 and player2 keys
                 p1 = team.get("player1") or {}
                 p2 = team.get("player2") or {}
 
@@ -181,17 +165,13 @@ def get_detailed_match_history(numeric_id, token):
                     if team.get("winner") is True:
                         user_won = True
                     break
-            
 
             if user_team_idx == -1: continue 
 
-            # Partners
-            # Extract Partner
             # Partner Extraction
             my_team = teams[user_team_idx]
             for p_key in ["player1", "player2"]:
                 p = my_team.get(p_key) or {}
-                if p.get("id") and str(p.get("id")) != str(numeric_id):
                 p_id = p.get("id")
                 if p_id and str(p_id) != str(numeric_id):
                     name = p.get("fullName", "Unknown")
@@ -201,9 +181,6 @@ def get_detailed_match_history(numeric_id, token):
                     else: stats["losses"] += 1
                     partner_stats[name] = stats
 
-            # Opponents
-            other_team = teams[1 if user_team_idx == 0 else 0]
-            # Extract Opponents
             # Opponent Extraction
             other_team_idx = 1 if user_team_idx == 0 else 0
             other_team = teams[other_team_idx]
@@ -216,7 +193,6 @@ def get_detailed_match_history(numeric_id, token):
                     if user_won: stats["wins"] += 1
                     else: stats["losses"] += 1
                     opponent_stats[name] = stats
-                    
 
         return partner_stats, opponent_stats
     except Exception:
@@ -230,7 +206,6 @@ if submit_button:
 
         if numeric_id:
             st.success(f"Dashboard for: **{full_name}**")
-            
 
             # 1. RATINGS SECTION
             doubles_json = get_rating_history(numeric_id, "DOUBLES", token)
@@ -249,7 +224,6 @@ if submit_button:
             # 2. MATCH HISTORY / INSIGHTS SECTION
             st.divider()
             st.header("Partner Insights")
-            
 
             with st.spinner("Analyzing match history..."):
                 p_stats, o_stats = get_detailed_match_history(numeric_id, token)
@@ -257,7 +231,6 @@ if submit_button:
             # --- INDENTATION FIXED BELOW ---
             if p_stats or o_stats:
                 col_p, col_o = st.columns(2)
-    
 
                 with col_p:
                     st.subheader("Top Partners")
