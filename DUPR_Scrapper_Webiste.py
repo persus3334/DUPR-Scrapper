@@ -6,8 +6,28 @@ import matplotlib.pyplot as plt
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="DUPR Analytics Dashboard", layout="wide")
 
+# --- MAIN INPUT AREA ---
 st.title("DUPR Dashboard")
 st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
+
+DEFAULT_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzY4NzI0MzEsImp0aSI6IjYzNzM2NzY5ODEiLCJzdWIiOiJjR1Z5YzNWek16TXpNMEJuYldGcGJDNWpiMjA9IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTQ2NDQzMX0.aovNkA9hT6IRqFlj3IHLzHPw9M9lh9_202VWALVZyM2pDih9-lksBJGWjiEBXnHwlP2FrqtwzxKqYqUqVgEfCNCsiKzouDpYVqbjqCgaVxzyFXI8HsIcSF3IfAA-lIQ3CtIUi3r9jqXgOEPIvBwQ5plPfHPiuA_tfUH0hsw9RIokJ3KpOEY4HTtHQTP87VdEdi9yJ7h5KeeLGwU5e4vhN0qgR416PCQwbQSSmbwfW3RODzKNkffaW4BxFEAHHTSK-KOwxbReCf_ppMqjCn46QXusapmN90DKHITEnZApxU7keKtTQEGKkYAF72puSUSMDrtoHd7b0wpayNsC-y6vAg"
+
+# We can use columns to keep the main area looking clean
+ui_col1, ui_col2 = st.columns([3, 1])
+
+with ui_col1:
+    player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="", placeholder="Enter ID here...")
+
+with ui_col2:
+    # Adding a label spacer to align the button with the text input
+    st.markdown("<br>", unsafe_allow_value=True) 
+    submit_button = st.button("Generate Plots", use_container_width=True)
+
+# Use an expander for "Advanced Settings" like the Token
+with st.expander("Advanced Settings (Token)"):
+    token = st.text_input("Bearer Token", value=DEFAULT_TOKEN, type="password")
+
+st.divider()
 
 # --- SIDEBAR / INPUTS ---
 with st.sidebar:
