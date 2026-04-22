@@ -315,4 +315,4 @@ if submit_button:
                 st.info("No detailed match history available to analyze.")
 
         else:
-            st.error("Could not find player. Please check the DUPR ID!")
+            st.error("Could not find player. Please check the DUPR ID.")
