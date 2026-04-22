@@ -215,16 +215,18 @@ def build_stats_df(stats_dict, min_matches):
     df.index.name = "Name"
     df["win_pct"] = (df["wins"] / df["total"] * 100).round(1)
     df["dupr_delta"] = df["dupr_delta"].round(3)
-    df = df.sort_values("win_pct", ascending=False)
+    df["dupr_delta_per"] = ((df["dupr_delta"].round(3)) / (df["total"]))
+    df = df.sort_values("dupr_delta_per", ascending=False)
     df = df.rename(columns={
         "wins": "W",
         "losses": "L",
         "total": "Total",
         "win_pct": "Win %",
         "dupr_delta": "DUPR +/-"
+        "dupr_delta_per": "DUPR +/- per match"
     })
     df["Win %"] = df["Win %"].astype(str) + "%"
-    return df[["W", "L", "Total", "Win %", "DUPR +/-"]]
+    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
 
 # --- APP FLOW ---
 
