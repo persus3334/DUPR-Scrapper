@@ -241,7 +241,7 @@ if submit_button:
                         st.write(f"No partners with {min_matches}+ matches found.")
 
                 with col_o:
-                    st.subheader(f"Frequent Opponents (min {min_matches} matches)")
+                    st.subheader(f"Frequent Doubles Opponents (min {min_matches} matches)")
                     odf = build_stats_df(o_stats, min_matches)
                     if not odf.empty:
                         st.dataframe(odf, use_container_width=True)
