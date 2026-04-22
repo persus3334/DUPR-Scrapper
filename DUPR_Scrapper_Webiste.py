@@ -226,7 +226,7 @@ def build_stats_df(stats_dict, min_matches):
         "dupr_delta_per": "DUPR +/- Per Match"
     })
     df["Win %"] = df["Win %"].astype(str) + "%"
-    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- per match"]]
+    return df[["W", "L", "Total", "Win %", "DUPR +/-", "DUPR +/- Per Match"]]
 
 # --- APP FLOW ---
 
