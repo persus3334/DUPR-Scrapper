@@ -190,7 +190,7 @@ def get_rating_history(numeric_id, match_type, tok, debug=False):
     limit = 100
     end_date = datetime.utcnow().strftime("%Y-%m-%d")
     # Go back 10 years to capture full history
-    start_date = (datetime.utcnow().replace(year=datetime.utcnow().year - 10)).strftime("%Y-%m-%d")
+    start_date = (datetime.utcnow().replace(year=datetime.utcnow().year - 3)).strftime("%Y-%m-%d")
 
     while True:
         payload = {
