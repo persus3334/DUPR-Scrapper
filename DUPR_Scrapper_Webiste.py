@@ -6,7 +6,7 @@ import time
 import random
 
 # --- PAGE CONFIG ---
-st.set_page_config(page_title="DUPR Dashboard", layout="wide")
+st.set_page_config(page_title="DUPR Dashboard!", layout="wide")
 
 # --- MAIN INPUT AREA ---
 st.title("DUPR Dashboard")
