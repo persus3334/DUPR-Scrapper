@@ -148,7 +148,7 @@ with st.sidebar:
 
     st.markdown("---")
     debug_mode = st.toggle("🔍 Debug mode", value=False, help="Shows raw API responses")
-        
+
 # ─────────────────────────────────────────────
 #  HERO HEADER
 # ─────────────────────────────────────────────
@@ -205,6 +205,7 @@ def get_rating_history(numeric_id, match_type, tok, debug=False):
             r = requests.post(url, headers=make_headers(tok), json=payload, timeout=15)
             if debug and offset == 0:
                 st.markdown(f"**`{match_type}` — status:** `{r.status_code}`")
+                st.markdown(f"**Payload sent:** `{payload}`")
                 try:
                     st.json(r.json())
                 except Exception:
