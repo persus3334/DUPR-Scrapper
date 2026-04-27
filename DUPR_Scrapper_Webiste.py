@@ -31,23 +31,26 @@ def get_numeric_id(dupr_id, current_token):
     headers = {
         "Authorization": f"Bearer {current_token}",
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Origin": "https://dashboard.dupr.com",
+        "Referer": "https://dashboard.dupr.com/"
     }
     payload = {
-        "limit": 10, "offset": 0, "query": dupr_id, "exclude": [],
+        "limit": 10, "offset": 0, "query": dupr_id.strip(), "exclude": [],
         "includeUnclaimedPlayers": True,
-        "filter": {"lat": 33.7, "lng": -84.7, "rating": {"maxRating": None, "minRating": None}, "locationText": ""}
+        "filter": {"lat": 33.8126059, "lng": -84.6343783, "rating": {"maxRating": None, "minRating": None}, "locationText": ""}
     }
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
         st.write(f"DEBUG status: {response.status_code}")
-        st.write(f"DEBUG response: {response.text[:500]}")  # First 500 chars
-        
+        st.write(f"DEBUG response: {response.text[:500]}")
+
         if response.status_code == 200:
             hits = response.json().get("result", {}).get("hits", [])
-            st.write(f"DEBUG hits returned: {[p.get('duprId') for p in hits]}")
+            st.write(f"DEBUG hits: {[p.get('duprId') for p in hits]}")
             for player in hits:
-                if player.get("duprId", "").upper() == dupr_id.upper():
+                if player.get("duprId", "").upper() == dupr_id.strip().upper():
                     return str(player.get("id")), player.get("fullName")
         return None, None
     except Exception as e:
