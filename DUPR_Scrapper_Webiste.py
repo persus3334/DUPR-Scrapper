@@ -147,27 +147,6 @@ with st.sidebar:
     submit = st.button("Generate Dashboard", use_container_width=True)
 
     st.markdown("---")
-    with st.expander("How to find your Player ID"):
-        st.markdown("""
-1. Go to [dashboard.dupr.com](https://dashboard.dupr.com)
-2. Navigate to your profile
-3. The URL will look like:
-   `dashboard.dupr.com/dashboard/player/**5608790853**/profile`
-4. Copy the number — that's your Player ID
-        """)
-
-    with st.expander("How to update your token"):
-        st.markdown("""
-1. Open [dashboard.dupr.com](https://dashboard.dupr.com) in Chrome
-2. Open DevTools → Network tab
-3. Refresh the page, click any `api.dupr.gg` request
-4. Copy the `Authorization: Bearer eyJ...` value
-5. Paste it into `secrets.toml`:
-```toml
-DUPR_TOKEN = "eyJhbGci..."
-```
-6. Redeploy on Streamlit Cloud
-        """)
 
 # ─────────────────────────────────────────────
 #  HERO HEADER
