@@ -26,27 +26,6 @@ headers_template = {
     "Accept": "application/json"
 }
 
-# 2. ADD THIS: Cached login to prevent "brute force" flagging
-@st.cache_data(ttl=43200) 
-def get_system_token():
-    # It pulls from your Streamlit Secrets (Settings > Secrets on the cloud)
-    try:
-        email = st.secrets["dupr_auth"]["email"]
-        password = st.secrets["dupr_auth"]["password"]
-    
-        url = "https://api.dupr.gg/auth/v1.0/login"
-        payload = {"email": email, "password": password}
-        
-        # Add a tiny "human" delay
-        time.sleep(random.uniform(0.5, 1.5))
-        
-        response = requests.post(url, json=payload, headers=headers_template, timeout=10)
-        if response.status_code == 200:
-            return response.json().get("result", {}).get("accessToken")
-    except Exception as e:
-        st.error(f"Authentication Error: {e}")
-    return None
-
 def get_numeric_id(dupr_id, current_token):
     url = "https://api.dupr.gg/player/v1.0/search"
     headers = {
@@ -262,7 +241,7 @@ def build_stats_df(stats_dict, min_matches):
 
 if submit_button:
     # 3. ADD THIS: Get the fresh token first
-    current_token = get_system_token()
+    current_token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzcyOTc3MTcsImp0aSI6IjYyNzAwMTMzNjciLCJzdWIiOiJjR1Z5YzNWek16TXpNekZBWjIxaGFXd3VZMjl0IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTg4OTcxN30.FXgKGRxgciEFHYjdNS74lJycGq3SaRAIghPHn2LJFtIAlwSbybfGvni-87ecC6mTKw8Jyh4O0G9P4NYx6KmssNr8BRl_JlK3N5Fd5iD__5RxnzCegmvYfm-YZg4-Ua18jUhN64SS2j5RjcgKJmv5BatY1yardVpcGYUeSQfrvay44HmCEofvnzMyUSGyOYkNIJiTvJyir6z1SNgFjlIdXlTw0sJNtclC3aZt0UFcJfW_LpLh7urqGYcZJlabQW5cW7_iI1VovNthbCN46bYya0ZW-Was5p-os4F5XVNgNzOyqEXuK5Rr-tODBiF_ZBtux00vBNfsoGBuTx0IQSOFuw"
     
     if not current_token:
         st.error("Website is currently under maintenance (Auth Error).")
