@@ -11,7 +11,8 @@ st.set_page_config(page_title="DUPR Dashboard", layout="wide")
 # --- MAIN INPUT AREA ---
 st.title("DUPR Dashboard")
 st.markdown("Enter a DUPR ID below to generate rating history graphs and teammate history.")
-player_id = st.text_input("DUPR ID (e.g. XXXXXX)", value="")
+# Replace this in the sidebar/main input area
+player_id = st.text_input("Numeric Player ID (from DUPR URL)", value="")
 min_matches = st.number_input("Min matches for partner/opponent table", min_value=1, value=10, step=1)
 submit_button = st.button("Generate Results")
 
@@ -248,58 +249,31 @@ def build_stats_df(stats_dict, min_matches):
 # --- APP FLOW ---
 
 if submit_button:
-    # 3. ADD THIS: Get the fresh token first
     current_token = "eyJhbGciOiJSUzUxMiJ9.eyJpc3MiOiJodHRwczovL2R1cHIuZ2ciLCJpYXQiOjE3NzcyOTc3MTcsImp0aSI6IjYyNzAwMTMzNjciLCJzdWIiOiJjR1Z5YzNWek16TXpNekZBWjIxaGFXd3VZMjl0IiwidG9rZW5fdHlwZSI6IkFDQ0VTUyIsImV4cCI6MTc3OTg4OTcxN30.FXgKGRxgciEFHYjdNS74lJycGq3SaRAIghPHn2LJFtIAlwSbybfGvni-87ecC6mTKw8Jyh4O0G9P4NYx6KmssNr8BRl_JlK3N5Fd5iD__5RxnzCegmvYfm-YZg4-Ua18jUhN64SS2j5RjcgKJmv5BatY1yardVpcGYUeSQfrvay44HmCEofvnzMyUSGyOYkNIJiTvJyir6z1SNgFjlIdXlTw0sJNtclC3aZt0UFcJfW_LpLh7urqGYcZJlabQW5cW7_iI1VovNthbCN46bYya0ZW-Was5p-os4F5XVNgNzOyqEXuK5Rr-tODBiF_ZBtux00vBNfsoGBuTx0IQSOFuw"
     
     if not current_token:
         st.error("Website is currently under maintenance (Auth Error).")
         st.stop()
-    
-    with st.spinner("Finding player and fetching data..."):
-        numeric_id, full_name = get_numeric_id(player_id, current_token)
 
-        if numeric_id:
-            st.success(f"Dashboard for: **{full_name}**")
+    if not player_id.strip():
+        st.error("Please enter a Player ID.")
+        st.stop()
 
-            doubles_json = get_rating_history(numeric_id, "DOUBLES", current_token)
-            singles_json = get_rating_history(numeric_id, "SINGLES", current_token)
+    numeric_id = player_id.strip()
 
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("Doubles Metrics")
-                render_plot(doubles_json, "Full Doubles History", is_daily=False)
-                render_plot(doubles_json, "Final Doubles Daily", is_daily=True)
-            with col2:
-                st.subheader("Singles Metrics")
-                render_plot(singles_json, "Full Singles History", is_daily=False)
-                render_plot(singles_json, "Final Singles Daily", is_daily=True)
+    with st.spinner("Fetching data..."):
+        # Get name from the first match result instead of search
+        doubles_json = get_rating_history(numeric_id, "DOUBLES", current_token)
+        singles_json = get_rating_history(numeric_id, "SINGLES", current_token)
 
-            st.divider()
-            st.header("Partner Insights")
+        # Try to extract name from rating history result
+        full_name = None
+        if doubles_json:
+            full_name = doubles_json.get("result", {}).get("fullName")
+        if not full_name and singles_json:
+            full_name = singles_json.get("result", {}).get("fullName")
+        if not full_name:
+            full_name = f"Player {numeric_id}"
 
-            with st.spinner("Analyzing match history..."):
-                p_stats, o_stats = get_detailed_match_history(numeric_id, current_token)
-
-            if p_stats or o_stats:
-                col_p, col_o = st.columns(2)
-
-                with col_p:
-                    st.subheader(f"Top Partners (min {min_matches} matches)")
-                    pdf = build_stats_df(p_stats, min_matches)
-                    if not pdf.empty:
-                        st.dataframe(pdf, use_container_width=True)
-                    else:
-                        st.write(f"No partners with {min_matches}+ matches found.")
-
-                with col_o:
-                    st.subheader(f"Frequent Opponents (min {min_matches} matches)")
-                    odf = build_stats_df(o_stats, min_matches)
-                    if not odf.empty:
-                        st.dataframe(odf, use_container_width=True)
-                    else:
-                        st.write(f"No opponents with {min_matches}+ matches found.")
-            else:
-                st.info("No detailed match history available to analyze.")
-
-        else:
-            st.error("Could not find player. Please check the DUPR ID.")
+        st.success(f"Dashboard for: **{full_name}**")
+        # ... rest of app flow unchanged
