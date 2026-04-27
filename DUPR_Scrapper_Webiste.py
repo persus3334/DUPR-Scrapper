@@ -40,13 +40,18 @@ def get_numeric_id(dupr_id, current_token):
     }
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=10)
+        st.write(f"DEBUG status: {response.status_code}")
+        st.write(f"DEBUG response: {response.text[:500]}")  # First 500 chars
+        
         if response.status_code == 200:
             hits = response.json().get("result", {}).get("hits", [])
+            st.write(f"DEBUG hits returned: {[p.get('duprId') for p in hits]}")
             for player in hits:
                 if player.get("duprId", "").upper() == dupr_id.upper():
                     return str(player.get("id")), player.get("fullName")
         return None, None
-    except Exception:
+    except Exception as e:
+        st.write(f"DEBUG exception: {e}")
         return None, None
 
 def get_rating_history(numeric_id, match_type, current_token):
